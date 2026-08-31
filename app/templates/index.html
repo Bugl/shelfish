@@ -51,11 +51,17 @@
         {{ item.package_count }}
       </span>
 
-      <button
-        class="quantity-button"
-        type="button"
-        aria-label="Eine Packung {{ item.product.name }} hinzufügen"
-      >+</button>
+      <form
+        class="quantity-form"
+        method="post"
+        action="/inventory-item/{{ item.id }}/package/increase"
+      >
+        <button
+          class="quantity-button"
+          type="submit"
+          aria-label="Eine Packung {{ item.product.name }} hinzufügen"
+        >+</button>
+      </form>
     </div>
 
     <div class="amount">
