@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ active_container.name }} | Shellfish{% endblock %}
+
+{% block content %}
+<section class="container-navigation" aria-label="Behälter wechseln">
+  <a
+    class="nav-button"
+    href="/container/{{ previous_container.id }}"
+    data-container-id="{{ previous_container.id }}"
+  >
+    ← {{ previous_container.name }}
+  </a>
+
+  <h1>{{ active_container.name }}</h1>
+
+  <a
+    class="nav-button"
+    href="/container/{{ next_container.id }}"
+    data-container-id="{{ next_container.id }}"
+  >
+    {{ next_container.name }} →
+  </a>
+</section>
+
+<section class="inventory-header">
+  <h2>Inhalt</h2>
+  <a
+    class="primary-button"
+    href="/container/{{ active_container.id }}/new">
+    + Lebensmittel hinzufügen
+  </a>
+</section>
+
+{% if inventory_items %}
+  <div class="inventory-list">
+  {% for item in inventory_items %}
+  <article class="inventory-row">
+    <div class="item-name">
+      {{ item.product.name }}
+    </div>
+
+    <div class="quantity-control">
+      <button
+        class="quantity-button"
+        type="button"
+        aria-label="Eine Packung {{ item.product.name }} entfernen"
+      >−</button>
+
+      <span class="quantity-value">
+        {{ item.package_count }}
+      </span>
+
+      <button
+        class="quantity-button"
+        type="button"
+        aria-label="Eine Packung {{ item.product.name }} hinzufügen"
+      >+</button>
+    </div>
+
+    <div class="amount">
+      {{ item.quantity_per_package }} {{ item.unit.symbol }}
+    </div>
+
+    <button
+      class="delete-button"
+      type="button"
+      aria-label="{{ item.product.name }} löschen"
+      title="Eintrag löschen"
+    >🗑</button>
+
+    <div class="item-meta">
+      <span>MHD{% if item.best_before %}: {{ item.best_before.strftime("%d.%m.%Y") }}{% endif %}</span>
+      <span>Eingefroren am: {{ item.frozen_on.strftime("%d.%m.%Y") }}</span>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+  <p class="empty-state">
+    Dieser Gefrierschrank ist noch leer.
+  </p>
+{% endif %}
+
+<script>
+  const storageKey = "shelfish.selectedContainerId";
+  const savedContainerId = localStorage.getItem(storageKey);
+  const activeContainerId = "{{ active_container.id }}";
+
+  if (savedContainerId && savedContainerId !== activeContainerId) {
+    window.location.replace(`/container/${savedContainerId}`);
+  }
+
+  document.querySelectorAll("[data-container-id]").forEach((link) => {
+    link.addEventListener("click", () => {
+      localStorage.setItem(storageKey, link.dataset.containerId);
+    });
+  });
+</script>
+{% endblock %}

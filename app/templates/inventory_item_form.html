@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Lebensmittel hinzufügen | Shellfish{% endblock %}
+
+{% block content %}
+<a class="back-link" href="/container/{{ active_container.id }}">
+  ← Zurück zu {{ active_container.name }}
+</a>
+
+<h1>Lebensmittel hinzufügen</h1>
+
+<form class="inventory-form" method="post">
+  <label for="product_name">Produkt</label>
+  <input
+    id="product_name"
+    name="product_name"
+    type="text"
+    required
+    autofocus
+    autocomplete="off"
+  >
+
+  <label for="package_count">Anzahl Packungen</label>
+  <input
+    id="package_count"
+    name="package_count"
+    type="number"
+    min="1"
+    value="1"
+    required
+  >
+
+  <label for="quantity_per_package">Menge je Packung</label>
+  <input
+    id="quantity_per_package"
+    name="quantity_per_package"
+    type="number"
+    min="0.01"
+    step="0.01"
+    required
+  >
+
+  <label for="unit_id">Einheit</label>
+  <select id="unit_id" name="unit_id" required>
+    {% for unit in units %}
+      <option value="{{ unit.id }}">{{ unit.name }} ({{ unit.symbol }})</option>
+    {% endfor %}
+  </select>
+
+  <label for="frozen_on">Eingefroren am</label>
+  <input
+    id="frozen_on"
+    name="frozen_on"
+    type="date"
+    required
+  >
+
+  <label for="best_before">Mindestens haltbar bis</label>
+  <input
+    id="best_before"
+    name="best_before"
+    type="date"
+  >
+
+  <label for="note">Notiz</label>
+  <textarea id="note" name="note" rows="3"></textarea>
+
+  <button class="primary-button" type="submit">
+    Lebensmittel speichern
+  </button>
+</form>
+{% endblock %}
