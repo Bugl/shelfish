@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.main import templates
 from app.models import Container, InventoryItem, Product, Unit
+from app.templates import templates
 
 router = APIRouter()
 

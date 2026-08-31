@@ -1,17 +1,12 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI,Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import FastAPI
 from sqlalchemy import select
 
-from app.database import Base, SessionLocal, engine, get_db
-from app.models import Container, InventoryItem, Product, Unit
-
-from datetime import date
-
+from app.database import Base, SessionLocal, engine
+from app.models import Container, Unit
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from app.templates import Jinja2Templates
 from app.routers.inventory import router as inventory_router
 
 INITIAL_CONTAINERS = [
