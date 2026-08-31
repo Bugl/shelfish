@@ -144,6 +144,23 @@ def increase_package_count(
         status_code=303,
     )
 
+@router.post("/inventory-item/{item_id}/package/decrease")
+def decrease_package_count(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    item = db.get(InventoryItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+
+    item.package_count -= 1
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/container/{item.container_id}",
+        status_code=303,
+    )
+
 @router.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}

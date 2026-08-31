@@ -41,11 +41,16 @@
     </div>
 
     <div class="quantity-control">
-      <button
-        class="quantity-button"
-        type="button"
-        aria-label="Eine Packung {{ item.product.name }} entfernen"
-      >−</button>
+      <form
+        class="quantity-form"
+        method="post"
+        action="/inventory-item/{{ item.id }}/package/decrease"
+      >
+       <button
+         class="quantity-button"
+         type="button"
+         aria-label="Eine Packung {{ item.product.name }} entfernen"
+       >−</button>
 
       <span class="quantity-value">
         {{ item.package_count }}
