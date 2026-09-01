@@ -154,6 +154,9 @@ def decrease_package_count(
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
     item.package_count -= 1
+    if item.package_count <= 0:
+        db.delete(item)
+
     db.commit()
 
     return RedirectResponse(
