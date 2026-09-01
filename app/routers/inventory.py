@@ -127,6 +127,23 @@ def create_inventory_item(
         status_code=303,
     )
 
+@router.post("/inventory-item/{item_id}/delete")
+def delete_inventory_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    item = db.get(InventoryItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+
+    db.delete(item)
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/container/{item.container_id}",
+        status_code=303,
+    )
+
 @router.post("/inventory-item/{item_id}/package/increase")
 def increase_package_count(
     item_id: int,

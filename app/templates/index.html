@@ -74,12 +74,18 @@
       {{ item.quantity_per_package }} {{ item.unit.symbol }}
     </div>
 
-    <button
-      class="delete-button"
-      type="button"
-      aria-label="{{ item.product.name }} löschen"
-      title="Eintrag löschen"
-    >🗑</button>
+    <form
+      class="quantity-form"
+      method="post"
+      action="/inventory-item/{{ item.id }}/delete"
+    >
+      <button
+        class="delete-button"
+        type="submit"
+        aria-label="{{ item.product.name }} löschen"
+        title="Eintrag löschen"
+      >🗑</button>
+    </form>
 
     <div class="item-meta">
       <span>MHD{% if item.best_before %}: {{ item.best_before.strftime("%d.%m.%Y") }}{% endif %}</span>
