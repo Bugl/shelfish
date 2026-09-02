@@ -69,9 +69,40 @@
         >+</button>
       </form>
     </div>
-
     <div class="amount">
-      {{ item.quantity_per_package }} {{ item.unit.symbol }}
+    {% if item.unit.symbol in ["Stk.", "Pkg.", "Port."] %}
+      <div class="quantity-control">
+        <form
+          class="quantity-form"
+          method="post"
+          action="/inventory-items/{{ item.id }}/quantity/decrease"
+        >
+          <button
+            class="quantity-button"
+            type="submit"
+            aria-label="Menge von {{ item.product.name }} verringern"
+          >−</button>
+        </form>
+
+        <span class="quantity-value">
+          {{ item.quantity_per_package }} {{ item.unit.symbol }}
+        </span>
+
+        <form
+          class="quantity-form"
+          method="post"
+          action="/inventory-items/{{ item.id }}/quantity/increase"
+        >
+          <button
+            class="quantity-button"
+            type="submit"
+            aria-label="Menge von {{ item.product.name }} erhöhen"
+          >+</button>
+        </form>
+      </div>
+      {% else %}
+        {{ item.quantity_per_package }} {{ item.unit.symbol }}
+      {% endif %}
     </div>
 
     <form

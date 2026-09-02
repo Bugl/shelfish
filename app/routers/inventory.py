@@ -181,6 +181,87 @@ def decrease_package_count(
         status_code=303,
     )
 
+@router.post("/inventory-items/{item_id}/quantity/increase")
+def increase_quantity(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    item = db.get(InventoryItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+
+@router.post("/inventory-items/{item_id}/quantity/decrease")
+def decrease_quantity(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    item = db.get(InventoryItem, item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Eintra gefunden")
+
+    container_id = item.container_id
+    new_quantity = item.quantity_per_package + 1
+
+    if item.quantity_per_package == 1:
+        if item.package_count == 1:
+            db.delete(item)
+        else:
+            item.package_count -= 1
+
+        db.commit()
+
+        return RedirectResponse(
+            url=f"/container/{container_id}",
+            status_code=303,
+        )
+
+    new_quantity = item.quantity_per_package - 1
+
+    matching_item = db.scalar(
+        select(InventoryItem).where(
+            InventoryItem.id != item.id,
+            InventoryItem.container_id == item.container_id,
+            InventoryItem.product_id == item.product_id,
+            InventoryItem.unit_id == item.unit_id,
+            InventoryItem.quantity_per_package == new_quantity,
+            InventoryItem.frozen_on == item.frozen_on,
+            InventoryItem.best_before == item.best_before,
+            InventoryItem.note == item.note,
+        )
+    )
+
+    if item.package_count == 1:
+        if matching_item is not None:
+            matching_item.package_count += 1
+            db.delete(item)
+        else:
+            item.quantity_per_package = new_quantity
+    else:
+        item.package_count -= 1
+
+        if matching_item is not None:
+            matching_item.package_count += 1
+        else:
+            db.add(
+                InventoryItem(
+                    product_id=item.product_id,
+                    container_id=item.container_id,
+                    unit_id=item.unit_id,
+                    package_count=1,
+                    quantity_per_package=new_quantity,
+                    frozen_on=item.frozen_on,
+                    best_before=item.best_before,
+                    note=item.note,
+                )
+            )
+
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/container/{container_id}",
+        status_code=303,
+    )
+
 @router.get("/health")
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
