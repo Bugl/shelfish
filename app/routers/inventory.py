@@ -11,7 +11,7 @@ from app.models import Container, InventoryItem, Product, Unit
 from app.services.inventory import move_one_package_to_quantity
 from app.templates import templates
 
-from app.repositories.inventory import get_inventory_item, add_inventory_item
+from app.repositories.inventory import get_inventory_item, add_inventory_item, delete_inventory_item
 
 router = APIRouter()
 
@@ -131,7 +131,7 @@ def create_inventory_item(
     )
 
 @router.post("/inventory-item/{item_id}/delete")
-def delete_inventory_item(
+def remove_inventory_item(
     item_id: int,
     db: Session = Depends(get_db),
 ):
@@ -140,7 +140,7 @@ def delete_inventory_item(
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
     container_id = item.container_id
 
-    delete_inventory_item(item_id, db)
+    delete_inventory_item(db, item)
     db.commit()
 
     return RedirectResponse(
@@ -177,7 +177,7 @@ def decrease_package_count(
     container_id = item.container_id
     item.package_count -= 1
     if item.package_count <= 0:
-        delete_inventory_item(item_id, db)
+        delete_inventory_item(db, item)
     db.commit()
 
     return RedirectResponse(

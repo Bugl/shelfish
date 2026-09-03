@@ -3,7 +3,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.models import InventoryItem
-from app.repositories.inventory import find_matching_inventory_item, add_inventory_item
+from app.repositories.inventory import find_matching_inventory_item, add_inventory_item, delete_inventory_item
 
 
 def move_one_package_to_quantity(
@@ -16,7 +16,7 @@ def move_one_package_to_quantity(
     if item.package_count == 1:
         if matching_item is not None:
             matching_item.package_count += 1
-            db.delete(item)
+            delete_inventory_item(db,item)
         else:
             item.quantity_per_package = new_quantity
         return
