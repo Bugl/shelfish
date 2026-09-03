@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Container, InventoryItem, Product, Unit
-from app.services.inventory import move_one_package_to_quantity
+from app.services.inventory import set_quantity, set_package_count
 from app.templates import templates
 
 from app.repositories.inventory import get_inventory_item, add_inventory_item, delete_inventory_item
@@ -157,7 +157,7 @@ def increase_package_count(
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-    item.package_count += 1
+    set_package_count(item, item.package_count + 1, db)
     db.commit()
 
     return RedirectResponse(
@@ -174,14 +174,11 @@ def decrease_package_count(
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-    container_id = item.container_id
-    item.package_count -= 1
-    if item.package_count <= 0:
-        delete_inventory_item(db, item)
+    set_package_count(item, item.package_count -1, db)
     db.commit()
 
     return RedirectResponse(
-        url=f"/container/{container_id}",
+        url=f"/container/{item.container_id}",
         status_code=303,
     )
 
@@ -197,7 +194,7 @@ def increase_quantity_per_package(
 
     container_id = item.container_id
 
-    move_one_package_to_quantity(
+    set_quantity(
         item=item,
         new_quantity=item.quantity_per_package + Decimal("1"),
         db=db,
@@ -220,7 +217,7 @@ def decrease_quantity_per_package(
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-    move_one_package_to_quantity(
+    set_quantity(
         item=item,
         new_quantity=item.quantity_per_package - Decimal("1"),
         db=db,
