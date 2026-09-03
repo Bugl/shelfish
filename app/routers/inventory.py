@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -7,7 +8,10 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Container, InventoryItem, Product, Unit
+from app.services.inventory import move_one_package_to_quantity
 from app.templates import templates
+
+from app.repositories.inventory import get_inventory_item, add_inventory_item
 
 router = APIRouter()
 
@@ -108,7 +112,8 @@ def create_inventory_item(
         db.add(product)
         db.flush()
 
-    inventory_item = InventoryItem(
+    add_inventory_item(
+        db=db,
         product_id=product.id,
         container_id=active_container.id,
         unit_id=unit.id,
@@ -118,8 +123,6 @@ def create_inventory_item(
         best_before=best_before,
         note=note.strip() if note else None,
     )
-
-    db.add(inventory_item)
     db.commit()
 
     return RedirectResponse(
@@ -132,11 +135,11 @@ def delete_inventory_item(
     item_id: int,
     db: Session = Depends(get_db),
 ):
-    item = db.get(InventoryItem, item_id)
+    item = get_inventory_item(db, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-    db.delete(item)
+    delete_inventory_item(item_id, db)
     db.commit()
 
     return RedirectResponse(
@@ -149,7 +152,7 @@ def increase_package_count(
     item_id: int,
     db: Session = Depends(get_db),
 ):
-    item = db.get(InventoryItem, item_id)
+    item = get_inventory_item(db, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
@@ -166,14 +169,13 @@ def decrease_package_count(
     item_id: int,
     db: Session = Depends(get_db),
 ):
-    item = db.get(InventoryItem, item_id)
+    item = get_inventory_item(db, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
     item.package_count -= 1
     if item.package_count <= 0:
-        db.delete(item)
-
+        delete_inventory_item(item_id, db)
     db.commit()
 
     return RedirectResponse(
@@ -182,83 +184,50 @@ def decrease_package_count(
     )
 
 @router.post("/inventory-items/{item_id}/quantity/increase")
-def increase_quantity(
+def increase_quantity_per_package(
     item_id: int,
     db: Session = Depends(get_db),
 ):
-    item = db.get(InventoryItem, item_id)
+    item = get_inventory_item(db, item_id)
+
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-@router.post("/inventory-items/{item_id}/quantity/decrease")
-def decrease_quantity(
-    item_id: int,
-    db: Session = Depends(get_db),
-):
-    item = db.get(InventoryItem, item_id)
-    if item is None:
-        raise HTTPException(status_code=404, detail="Eintra gefunden")
-
     container_id = item.container_id
-    new_quantity = item.quantity_per_package + 1
 
-    if item.quantity_per_package == 1:
-        if item.package_count == 1:
-            db.delete(item)
-        else:
-            item.package_count -= 1
-
-        db.commit()
-
-        return RedirectResponse(
-            url=f"/container/{container_id}",
-            status_code=303,
-        )
-
-    new_quantity = item.quantity_per_package - 1
-
-    matching_item = db.scalar(
-        select(InventoryItem).where(
-            InventoryItem.id != item.id,
-            InventoryItem.container_id == item.container_id,
-            InventoryItem.product_id == item.product_id,
-            InventoryItem.unit_id == item.unit_id,
-            InventoryItem.quantity_per_package == new_quantity,
-            InventoryItem.frozen_on == item.frozen_on,
-            InventoryItem.best_before == item.best_before,
-            InventoryItem.note == item.note,
-        )
+    move_one_package_to_quantity(
+        item=item,
+        new_quantity=item.quantity_per_package + Decimal("1"),
+        db=db,
     )
-
-    if item.package_count == 1:
-        if matching_item is not None:
-            matching_item.package_count += 1
-            db.delete(item)
-        else:
-            item.quantity_per_package = new_quantity
-    else:
-        item.package_count -= 1
-
-        if matching_item is not None:
-            matching_item.package_count += 1
-        else:
-            db.add(
-                InventoryItem(
-                    product_id=item.product_id,
-                    container_id=item.container_id,
-                    unit_id=item.unit_id,
-                    package_count=1,
-                    quantity_per_package=new_quantity,
-                    frozen_on=item.frozen_on,
-                    best_before=item.best_before,
-                    note=item.note,
-                )
-            )
 
     db.commit()
 
     return RedirectResponse(
         url=f"/container/{container_id}",
+        status_code=303,
+    )
+
+@router.post("/inventory-items/{item_id}/quantity/decrease")
+def decrease_quantity_per_package(
+    item_id: int,
+    db: Session = Depends(get_db),
+):
+    item = get_inventory_item(db, item_id)
+
+    if item is None:
+        raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+
+    move_one_package_to_quantity(
+        item=item,
+        new_quantity=item.quantity_per_package - Decimal("1"),
+        db=db,
+    )
+
+    db.commit()
+
+    return RedirectResponse(
+        url=f"/container/{item.container_id}",
         status_code=303,
     )
 
