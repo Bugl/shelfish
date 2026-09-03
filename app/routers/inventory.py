@@ -173,14 +173,14 @@ def decrease_package_count(
     item = get_inventory_item(db, item_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
-
+    container_id = item.container_id
     item.package_count -= 1
     if item.package_count <= 0:
         delete_inventory_item(item_id, db)
     db.commit()
 
     return RedirectResponse(
-        url=f"/container/{item.container_id}",
+        url=f"/container/{container_id}",
         status_code=303,
     )
 
