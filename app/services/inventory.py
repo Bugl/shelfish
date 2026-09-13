@@ -25,6 +25,10 @@ def set_quantity(
         set_package_count(item, item.package_count - 1, db)
         return
 
+    # If package count is 1, just change the quantity
+    if item.package_count == 0:
+        item.quantity_per_package = new_quantity
+
     # Else clone item with package count set to 1 and new quantity.
     add_inventory_item(
         db=db,
