@@ -15,6 +15,7 @@ def set_quantity(
     if new_quantity <= 0:
         new_package_count = item.package_count - 1
         set_package_count(item, new_package_count, db)
+        return
 
     # If An item with matching quantity is found, increase its package count while decreasing the package count of the original item.
     matching_item = find_matching_inventory_item(db, item, new_quantity)
