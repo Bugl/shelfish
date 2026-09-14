@@ -22,10 +22,8 @@ def set_quantity(
 
     #If quantity drops to 0, the package is removed.
     if new_quantity <= 0:
-        new_package_count = item.package_count - 1
-        set_package_count(item, new_package_count, db)
+        remove_one_package(item, db)
         return
-
 
     # Single Package: Item itself can be altered
     if item.package_count == 1:
@@ -37,6 +35,7 @@ def set_quantity(
 
     if matching_item:
         add_one_package(matching_item)
+        db.commit()
     else:
         _create_single_package_item(db, item, new_quantity)
 
