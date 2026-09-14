@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.models import InventoryItem
@@ -11,37 +12,36 @@ def set_quantity(
     new_quantity: Decimal,
     db: Session,
 ) -> None:
+    """
+    Changes the amount of one single package from item to new quantity.
+
+    It there are multiple packages, one package is extracted from item.
+    This will either be added to a matching item or created as a new item.
+    """
+    _validate_quantity_change(item, new_quantity)
+
     #If quantity drops to 0, the package is removed.
     if new_quantity <= 0:
         new_package_count = item.package_count - 1
         set_package_count(item, new_package_count, db)
         return
 
-    # If An item with matching quantity is found, increase its package count while decreasing the package count of the original item.
-    matching_item = find_matching_inventory_item(db, item, new_quantity)
 
-    if matching_item is not None:
-        set_package_count(matching_item, matching_item.package_count + 1, db)
-        set_package_count(item, item.package_count - 1, db)
+    # Single Package: Item itself can be altered
+    if item.package_count == 1:
+        item.quantity_per_package = new_quantity
         return
 
-    # If package count is 1, just change the quantity
-    if item.package_count == 0:
-        item.quantity_per_package = new_quantity
+    # Multiple packages: one package should be extracted
+    matching_item = find_matching_inventory_item(db, item, new_quantity)
 
-    # Else clone item with package count set to 1 and new quantity. and reduce original package count by 1
-    set_package_count(item, item.package_count - 1, db)
-    add_inventory_item(
-        db=db,
-        product_id=item.product_id,
-        container_id=item.container_id,
-        unit_id=item.unit_id,
-        package_count=1,
-        quantity_per_package=new_quantity,
-        frozen_on=item.frozen_on,
-        best_before=item.best_before,
-        note=item.note,
-    )
+    remove_one_package(item, db)
+
+    if matching_item:
+        add_one_package(matching_item)
+        return
+
+    _create_single_package_item(db, item, new_quantity)
 
 def set_package_count(
         item: InventoryItem,
@@ -52,3 +52,37 @@ def set_package_count(
         delete_inventory_item(db,item)
         return
     item.package_count = new_package_count
+
+def remove_one_package(item: InventoryItem, db: Session) -> None:
+    if item.package_count == 1:
+        db.delete(item)
+    else:
+        item.package_count -= 1
+
+def add_one_package(item: InventoryItem) -> None:
+    item.package_count += 1
+
+def _validate_quantity_change(item: InventoryItem, new_quantity: Decimal) -> None:
+    if item.package_count < 1:
+        raise ValidationError("An item must have at least one package")
+
+    if new_quantity.is_finite() or new_quantity <= Decimal("0"):
+        raise ValidationError("quantity_per_package must be a finite Decimal greater than zero")
+
+def _create_single_package_item(
+        db: Session,
+        source: InventoryItem,
+        quantity_per_package: Decimal,
+) -> InventoryItem:
+    new_item = InventoryItem(
+        product_id=source.product_id,
+        container_id=source.container_id,
+        unit_id=source.unit_id,
+        package_count=1,
+        quantity_per_package=quantity_per_package,
+        frozen_on=source.frozen_on,
+        note=source.note,
+        best_before=source.best_before,
+    )
+    db.add(new_item)
+    return new_item
