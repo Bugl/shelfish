@@ -35,13 +35,12 @@ def set_quantity(
     # Multiple packages: one package should be extracted
     matching_item = find_matching_inventory_item(db, item, new_quantity)
 
-    remove_one_package(item, db)
-
     if matching_item:
         add_one_package(matching_item)
-        return
+    else:
+        _create_single_package_item(db, item, new_quantity)
 
-    _create_single_package_item(db, item, new_quantity)
+    remove_one_package(item, db)
 
 def set_package_count(
         item: InventoryItem,
