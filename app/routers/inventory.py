@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Container, InventoryItem, Product, Unit
-from app.services.inventory import set_quantity, set_package_count
+from app.services.inventory import set_quantity, set_package_count, add_one_package, remove_one_package
 from app.templates import templates
 
 from app.repositories.inventory import get_inventory_item, add_inventory_item, delete_inventory_item
@@ -88,7 +88,7 @@ def create_inventory_item(
     container_id: int,
     product_name: str = Form(...),
     package_count: int = Form(...),
-    quantity_per_package: float = Form(...),
+    quantity_per_package: Decimal = Form(...),
     unit_id: int = Form(...),
     frozen_on: date = Form(...),
     best_before: date | None = Form(None),
@@ -157,7 +157,7 @@ def increase_package_count(
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-    set_package_count(item, item.package_count + 1, db)
+    add_one_package(item)
     db.commit()
 
     return RedirectResponse(
@@ -174,7 +174,7 @@ def decrease_package_count(
     if item is None:
         raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
 
-    set_package_count(item, item.package_count -1, db)
+    remove_one_package(item, db)
     db.commit()
 
     return RedirectResponse(
